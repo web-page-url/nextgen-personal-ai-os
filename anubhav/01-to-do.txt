@@ -1,0 +1,1730 @@
+Absolutely. I’d make the prompt **architecture-first**, because the biggest mistake Claude could make here is building Phase 1 as a one-off RAG app that becomes difficult to extend into the other four products.
+
+The key requirement should be:
+
+> **One unified Personal AI platform, one local data layer, modular AI providers, and feature modules built on top of a shared AI Core.**
+
+Here is a prompt you can paste directly into **Claude Code / Claude**.
+
+---
+
+# 🚀 MASTER PROMPT — Personal AI Operating System
+
+```text
+You are a senior staff-level software architect and full-stack AI engineer.
+
+I want you to BUILD a production-quality, extensible Personal AI platform.
+
+This is NOT five separate applications.
+
+It is ONE unified platform with a shared AI CORE, shared database, shared authentication, shared memory, shared RAG infrastructure, shared LLM abstraction and shared agent/tool infrastructure.
+
+The platform will eventually contain:
+
+1. Second Brain
+2. Life Library
+3. Life Dashboard
+4. Daily + Weekly Review Agent
+5. Marketing & Branding Kit
+
+We will build them incrementally.
+
+IMPORTANT:
+Start by building the CORE architecture and Phase 1: SECOND BRAIN.
+
+Do NOT prematurely build all five products.
+
+The architecture must make adding the other four products easy later.
+
+==================================================
+# 1. PRODUCT VISION
+==================================================
+
+The long-term vision is:
+
+                 PERSONAL AI
+                      |
+                ┌─────┴─────┐
+                │  AI CORE  │
+                └─────┬─────┘
+                      |
+        ┌─────────────┼─────────────┐
+        ↓             ↓             ↓
+ Second Brain    Life Library   Life Dashboard
+        |             |             |
+        └─────────────┼─────────────┘
+                      ↓
+              Review / Coach Agent
+                      |
+                      ↓
+             Marketing Intelligence
+
+The AI should eventually understand:
+
+- user's documents
+- user's notes
+- user's knowledge
+- user's tasks
+- user's calendar
+- user's emails
+- user's activities
+- user's preferences
+- user's long-term context
+
+And eventually be able to:
+
+SEARCH
+UNDERSTAND
+REASON
+SUMMARIZE
+CONNECT
+RECOMMEND
+PLAN
+ACT
+
+The long-term product philosophy is:
+
+"Don't just answer the user. Understand the user's context."
+
+==================================================
+# 2. CURRENT PHASE
+==================================================
+
+For now, ONLY build:
+
+PHASE 1 — SECOND BRAIN
+
+Core workflow:
+
+UPLOAD
+   ↓
+INGEST
+   ↓
+PARSE
+   ↓
+CLEAN
+   ↓
+CHUNK
+   ↓
+EMBED
+   ↓
+STORE
+   ↓
+SEARCH
+   ↓
+RETRIEVE
+   ↓
+RERANK
+   ↓
+LLM
+   ↓
+ANSWER
+   ↓
+CITATIONS
+
+The user should be able to upload documents and ask questions about them.
+
+Example:
+
+User uploads:
+
+- house_lease.pdf
+- car_insurance.pdf
+- contract.pdf
+- notes.md
+- research.pdf
+
+Then asks:
+
+"What payments do I have coming up?"
+
+The system should retrieve relevant information and answer with citations.
+
+==================================================
+# 3. TECHNOLOGY STACK
+==================================================
+
+Use:
+
+Frontend:
+- Next.js 16+
+- TypeScript
+- App Router
+- React
+- Tailwind CSS
+- shadcn/ui
+
+Backend:
+- Next.js server-side architecture
+- TypeScript
+- API routes / Server Actions where appropriate
+- Background workers for document processing
+
+Database:
+- PostgreSQL
+- pgvector
+
+ORM:
+- Prisma
+
+Caching / queues:
+- Redis
+- BullMQ
+
+Local infrastructure:
+- Docker
+- Docker Compose
+
+IMPORTANT:
+
+DO NOT USE:
+- Supabase
+- Firebase
+- Pinecone
+- hosted PostgreSQL
+- hosted vector database
+- hosted Redis
+
+I want the database and infrastructure running LOCALLY.
+
+==================================================
+# 4. LOCAL-FIRST REQUIREMENT
+==================================================
+
+This is extremely important.
+
+ALL APPLICATION DATA MUST BE LOCAL.
+
+The system should run locally using Docker Compose.
+
+Example:
+
+docker compose up
+
+should start:
+
+- PostgreSQL + pgvector
+- Redis
+- application dependencies
+
+Use environment variables for configuration.
+
+Example:
+
+DATABASE_URL=
+REDIS_URL=
+GEMINI_API_KEY=
+
+Do not hardcode secrets.
+
+The user's documents should also remain local.
+
+For MVP, use local filesystem storage:
+
+/storage/documents
+
+Design the storage layer behind an abstraction:
+
+StorageProvider
+
+so that later we can support:
+
+- local filesystem
+- S3
+- Google Cloud Storage
+- Azure Blob
+- etc.
+
+But DO NOT implement cloud storage now.
+
+==================================================
+# 5. LLM ARCHITECTURE
+==================================================
+
+This is one of the MOST IMPORTANT requirements.
+
+Do NOT tightly couple the application to Gemini.
+
+Gemini is the INITIAL LLM provider.
+
+But in the future I want the user to be able to configure ANY supported LLM through an API.
+
+The architecture must use an LLM provider abstraction.
+
+Example:
+
+LLMProvider
+    |
+    ├── GeminiProvider
+    ├── OpenAIProvider
+    ├── AnthropicProvider
+    ├── OpenRouterProvider
+    ├── OllamaProvider
+    └── CustomProvider
+
+For now:
+
+GeminiProvider
+
+is the only fully implemented provider.
+
+But the architecture must make adding another provider straightforward.
+
+For example:
+
+interface LLMProvider {
+
+    generateText(...)
+    generateStructured(...)
+    generateEmbedding(...)
+    streamText(...)
+    countTokens(...)
+}
+
+Do not scatter Gemini-specific SDK calls throughout the application.
+
+BAD:
+
+components/chat.tsx
+services/document.ts
+api/query.ts
+
+all directly calling Gemini.
+
+Instead:
+
+Application
+    ↓
+AI Service
+    ↓
+LLM Provider Interface
+    ↓
+Gemini Provider
+
+This allows us to change models later without rewriting the application.
+
+==================================================
+# 6. MODEL CONFIGURATION
+==================================================
+
+Create a centralized AI configuration system.
+
+Example:
+
+AI_PROVIDER=gemini
+AI_MODEL=gemini-...
+
+Embedding provider/model should also be configurable.
+
+The architecture should eventually support:
+
+LLM Provider:
+- Gemini
+- OpenAI
+- Anthropic
+- Ollama
+- OpenRouter
+- Custom API
+
+Embedding Provider:
+- Gemini
+- OpenAI
+- local embedding model
+- other future providers
+
+Do not assume the embedding model and generation model must come from the same provider.
+
+==================================================
+# 7. AI CORE
+==================================================
+
+Create a reusable AI Core module.
+
+Suggested structure:
+
+src/
+  core/
+    ai/
+      providers/
+        llm/
+          LLMProvider.ts
+          GeminiProvider.ts
+
+        embeddings/
+          EmbeddingProvider.ts
+          GeminiEmbeddingProvider.ts
+
+      AIService.ts
+
+      prompts/
+      schemas/
+      tokenization/
+
+    rag/
+      ingestion/
+      parsing/
+      chunking/
+      embedding/
+      retrieval/
+      reranking/
+      citation/
+
+    memory/
+    agents/
+    tools/
+
+    storage/
+      StorageProvider.ts
+      LocalStorageProvider.ts
+
+    events/
+    jobs/
+
+The exact folder structure can be improved if you have a better architecture.
+
+The important thing is separation of concerns.
+
+==================================================
+# 8. RAG ENGINE
+==================================================
+
+Build a reusable RAG engine.
+
+It should support:
+
+1. document ingestion
+2. text extraction
+3. metadata extraction
+4. chunking
+5. embeddings
+6. vector storage
+7. semantic search
+8. metadata filtering
+9. hybrid retrieval if practical
+10. reranking
+11. context assembly
+12. LLM generation
+13. source citations
+
+Do not make the RAG implementation specific to "Second Brain".
+
+It will later power:
+
+- Life Library
+- Life Dashboard
+- Review Agent
+- other features
+
+==================================================
+# 9. DOCUMENT TYPES
+==================================================
+
+For Phase 1 support:
+
+- PDF
+- DOCX
+- TXT
+- Markdown
+- CSV
+- JSON
+
+Design the parser using an abstraction.
+
+Example:
+
+DocumentParser
+    |
+    ├── PDFParser
+    ├── DOCXParser
+    ├── TextParser
+    ├── MarkdownParser
+    ├── CSVParser
+    └── JSONParser
+
+If a format requires an external/local library, choose a mature open-source solution.
+
+Do NOT build complicated parsers from scratch.
+
+==================================================
+# 10. DOCUMENT PROCESSING PIPELINE
+==================================================
+
+When the user uploads a document:
+
+1. Validate file
+2. Generate document ID
+3. Store original file locally
+4. Create DB record
+5. Queue ingestion job
+6. Extract text
+7. Normalize text
+8. Extract metadata
+9. Chunk text
+10. Generate embeddings
+11. Store chunks
+12. Store vectors
+13. Mark document as READY
+
+Document states:
+
+UPLOADED
+PROCESSING
+READY
+FAILED
+
+Store processing errors.
+
+The UI should show processing status.
+
+==================================================
+# 11. CHUNKING
+==================================================
+
+Build chunking as a configurable service.
+
+Do NOT hardcode one chunk size everywhere.
+
+Example configuration:
+
+chunkSize
+chunkOverlap
+separator strategy
+
+Make it possible to experiment with:
+
+- fixed token chunks
+- paragraph chunks
+- heading-aware chunks
+- semantic chunks
+
+Start with a reliable simple strategy.
+
+Optimize later based on retrieval quality.
+
+==================================================
+# 12. DATABASE DESIGN
+==================================================
+
+Design a clean PostgreSQL schema.
+
+At minimum consider:
+
+User
+
+Document
+
+DocumentVersion
+
+DocumentChunk
+
+Embedding
+
+Conversation
+
+Message
+
+Citation
+
+Collection
+
+Tag
+
+DocumentTag
+
+ProcessingJob
+
+AIProviderConfig
+
+The schema must support multiple users.
+
+Even if initially only one person uses the application.
+
+Important:
+
+Do NOT put everything into one giant table.
+
+Use proper relationships.
+
+Each user's data must be isolated.
+
+==================================================
+# 13. VECTOR DATABASE
+==================================================
+
+Use:
+
+PostgreSQL + pgvector.
+
+Do NOT introduce a separate vector database.
+
+Vectors should live alongside document metadata.
+
+Design retrieval queries carefully.
+
+Support:
+
+- cosine similarity
+- metadata filters
+- user filtering
+- collection filtering
+- tag filtering
+
+The vector layer must be abstract enough that another vector implementation could theoretically be introduced later.
+
+==================================================
+# 14. CHAT / QUERY ENGINE
+==================================================
+
+Build a reusable query pipeline:
+
+User question
+      ↓
+Query understanding
+      ↓
+Query embedding
+      ↓
+Vector search
+      ↓
+Metadata filtering
+      ↓
+Optional reranking
+      ↓
+Context construction
+      ↓
+LLM
+      ↓
+Answer
+      ↓
+Citations
+
+The LLM should NEVER blindly answer document questions without retrieval when the question requires document knowledge.
+
+The system prompt should instruct the model to:
+
+- use retrieved context
+- avoid hallucinating
+- clearly state when information is unavailable
+- cite sources
+- distinguish facts from inference
+- never invent document content
+
+==================================================
+# 15. CITATIONS
+==================================================
+
+Every factual claim derived from a document should be traceable to its source.
+
+Example:
+
+"Your car insurance expires on 12 October 2026."
+
+[Source: car_insurance.pdf, page 4]
+
+The UI should allow the user to click the citation and see:
+
+- document name
+- page
+- relevant chunk
+- surrounding context
+
+If exact page numbers aren't available for a format, provide the best available source location.
+
+==================================================
+# 16. SECOND BRAIN UI
+==================================================
+
+Create a beautiful modern interface.
+
+Think:
+
+Notion + ChatGPT + modern AI workspace.
+
+Main navigation:
+
+Dashboard
+Documents
+Collections
+Search
+Chat
+Settings
+
+Document page:
+
+- filename
+- type
+- size
+- upload date
+- processing status
+- tags
+- collection
+- extracted metadata
+- document preview if practical
+
+Chat page:
+
+Left:
+- conversations
+
+Center:
+- chat
+
+Right:
+- sources / citations
+
+The design should be:
+
+- clean
+- premium
+- minimal
+- responsive
+- fast
+- dark/light mode
+
+Do not over-design the UI.
+
+Prioritize usability.
+
+==================================================
+# 17. SEARCH
+==================================================
+
+Build global semantic search.
+
+Example:
+
+Search:
+
+"insurance expiration"
+
+should find relevant information even if the document doesn't literally contain those exact words.
+
+Show:
+
+Document
+Relevant passage
+Similarity/relevance
+Metadata
+
+Later this same search engine will become the foundation for the Life Library.
+
+==================================================
+# 18. MEMORY ARCHITECTURE
+==================================================
+
+Do NOT build complicated memory yet.
+
+But create the architecture for future memory.
+
+Eventually we will have:
+
+Short-term memory
+Long-term memory
+User preferences
+Document knowledge
+Conversation memory
+Activity memory
+
+For now:
+
+implement conversation persistence and document knowledge.
+
+Create interfaces so memory can be expanded later.
+
+==================================================
+# 19. AGENT ARCHITECTURE
+==================================================
+
+Do NOT build a complex multi-agent system in Phase 1.
+
+However, create an architecture that allows agents later.
+
+Example:
+
+Agent
+  |
+  ├── tools
+  ├── memory
+  ├── planner
+  ├── LLM
+  └── execution
+
+Eventually we will create:
+
+Retriever Agent
+Reasoning Agent
+Action Agent
+Review Agent
+
+For Phase 1, a simple RAG pipeline is sufficient.
+
+Do not add unnecessary agent complexity.
+
+==================================================
+# 20. FUTURE PRODUCT MODULES
+==================================================
+
+The architecture must support these future modules.
+
+--------------------------------
+MODULE 1
+SECOND BRAIN
+--------------------------------
+
+Documents
+Contracts
+Leases
+Insurance
+Notes
+PDFs
+Research
+
+Question answering + citations.
+
+--------------------------------
+MODULE 2
+LIFE LIBRARY
+--------------------------------
+
+Books
+Articles
+Newsletters
+YouTube
+Podcasts
+Notes
+
+The AI should eventually answer:
+
+"What have I learned about productivity?"
+
+by searching across everything the user has consumed.
+
+--------------------------------
+MODULE 3
+LIFE DASHBOARD
+--------------------------------
+
+Integrations:
+
+Google Calendar
+Gmail
+Google Drive
+Slack
+Tasks
+
+The AI eventually creates:
+
+Daily briefing
+Priority tasks
+Upcoming deadlines
+Important emails
+Schedule analysis
+
+--------------------------------
+MODULE 4
+REVIEW AGENT
+--------------------------------
+
+Daily check-in:
+
+What went well?
+What didn't?
+What did you learn?
+What should change tomorrow?
+
+Weekly:
+
+Patterns
+Insights
+Trends
+Recommendations
+Next-week plan
+
+--------------------------------
+MODULE 5
+MARKETING KIT
+--------------------------------
+
+Brand profile
+Voice
+Values
+Audience
+Colors
+Typography
+Messaging
+
+Generate:
+
+Website copy
+Social posts
+Emails
+Ads
+Marketing content
+
+==================================================
+# 21. SHARED PLATFORM ARCHITECTURE
+==================================================
+
+Think in terms of:
+
+                 PERSONAL AI PLATFORM
+                         |
+              ┌──────────┴──────────┐
+              │       AI CORE       │
+              │                     │
+              │ LLM                 │
+              │ Embeddings          │
+              │ RAG                 │
+              │ Memory              │
+              │ Agents              │
+              │ Tools               │
+              │ Context             │
+              └──────────┬──────────┘
+                         |
+       ┌─────────────────┼──────────────────┐
+       ↓                 ↓                  ↓
+ Knowledge           Productivity       Intelligence
+       |                 |                  |
+ Second Brain       Life Dashboard      Review Agent
+ Life Library                            Marketing Kit
+
+Everything should reuse the same core services.
+
+==================================================
+# 22. API DESIGN
+==================================================
+
+Create clean internal APIs.
+
+Examples:
+
+POST /api/documents/upload
+
+GET /api/documents
+
+GET /api/documents/:id
+
+DELETE /api/documents/:id
+
+POST /api/documents/:id/reprocess
+
+POST /api/search
+
+POST /api/chat
+
+GET /api/conversations
+
+GET /api/conversations/:id
+
+POST /api/collections
+
+etc.
+
+Do not tightly couple frontend components to database queries.
+
+Use service layers.
+
+Example:
+
+Route
+ ↓
+Controller
+ ↓
+Service
+ ↓
+Repository
+ ↓
+Database
+
+Do not put business logic directly inside React components.
+
+==================================================
+# 23. CONFIGURATION
+==================================================
+
+Create:
+
+.env.example
+
+Example variables:
+
+DATABASE_URL=
+REDIS_URL=
+
+GEMINI_API_KEY=
+GEMINI_MODEL=
+
+EMBEDDING_PROVIDER=
+EMBEDDING_MODEL=
+
+STORAGE_PROVIDER=local
+LOCAL_STORAGE_PATH=
+
+AI_PROVIDER=gemini
+
+Do not commit .env.
+
+==================================================
+# 24. SECURITY
+==================================================
+
+Implement reasonable security from the beginning.
+
+Requirements:
+
+- authentication
+- authorization
+- user-level data isolation
+- file validation
+- file size limits
+- safe filenames
+- secure API routes
+- environment-based secrets
+- no API keys exposed to frontend
+- SQL injection protection through Prisma
+- rate limiting architecture
+- input validation
+- output validation
+
+Use Zod for request validation where appropriate.
+
+==================================================
+# 25. OBSERVABILITY
+==================================================
+
+Add structured logging.
+
+Track:
+
+- document processing
+- ingestion failures
+- LLM requests
+- latency
+- token usage if available
+- embedding latency
+- retrieval latency
+- errors
+
+Do not log:
+
+- API keys
+- passwords
+- sensitive document contents unnecessarily
+
+Create a foundation for future:
+
+Prometheus
+Grafana
+OpenTelemetry
+
+but don't over-engineer this now.
+
+==================================================
+# 26. TESTING
+==================================================
+
+Write tests for important core functionality.
+
+At minimum:
+
+- document parsing
+- chunking
+- embedding service
+- retrieval
+- citation generation
+- LLM provider abstraction
+- document processing
+- API validation
+
+Use realistic test documents.
+
+The RAG engine should be independently testable.
+
+==================================================
+# 27. CODE QUALITY
+==================================================
+
+Follow strong engineering practices.
+
+Use:
+
+- TypeScript strict mode
+- clear interfaces
+- dependency injection where useful
+- small services
+- reusable modules
+- meaningful naming
+- error handling
+- typed responses
+- Zod schemas
+- environment configuration
+- no duplicated AI logic
+
+Avoid:
+
+- giant files
+- giant React components
+- any type unless absolutely necessary
+- hardcoded secrets
+- hardcoded provider logic
+- unnecessary abstractions
+- premature microservices
+
+This is initially a modular monolith.
+
+Do NOT turn this into microservices.
+
+==================================================
+# 28. PROJECT STRUCTURE
+==================================================
+
+You may improve this structure, but aim for something conceptually similar to:
+
+app/
+  (auth)/
+  dashboard/
+  documents/
+  chat/
+  search/
+  settings/
+
+  api/
+    documents/
+    chat/
+    search/
+    collections/
+
+src/
+  core/
+    ai/
+    rag/
+    memory/
+    agents/
+    tools/
+    storage/
+
+  modules/
+    second-brain/
+    life-library/
+    life-dashboard/
+    review-agent/
+    marketing/
+
+  db/
+    prisma/
+    repositories/
+
+  jobs/
+    document-processing/
+
+  lib/
+    auth/
+    validation/
+    logging/
+    config/
+
+  components/
+    ui/
+    layout/
+
+Do not create future modules with fake implementations.
+
+Create the architectural boundaries, but implement only Second Brain.
+
+==================================================
+# 29. DOCKER
+==================================================
+
+Create:
+
+docker-compose.yml
+
+Services:
+
+postgres
+redis
+
+Use a PostgreSQL image that supports pgvector.
+
+Persist database data using Docker volumes.
+
+Example conceptual architecture:
+
+App
+ |
+ +---- PostgreSQL + pgvector
+ |
+ +---- Redis
+ |
+ +---- Local file storage
+
+Everything should work locally.
+
+==================================================
+# 30. DEVELOPMENT EXPERIENCE
+==================================================
+
+I want the project to be easy to run.
+
+The README should eventually allow:
+
+git clone ...
+npm install
+docker compose up -d
+npx prisma migrate dev
+npm run dev
+
+Explain every required step.
+
+Provide:
+
+.env.example
+
+database setup
+
+migration commands
+
+seed command if needed
+
+development commands
+
+test commands
+
+build commands
+
+==================================================
+# 31. IMPORTANT PRODUCT PRINCIPLE
+==================================================
+
+Do NOT build a generic "PDF chatbot".
+
+The system should feel like a real personal knowledge platform.
+
+The difference is:
+
+PDF chatbot:
+
+Upload PDF
+ ↓
+Ask question
+
+Our product:
+
+Documents
+ ↓
+Knowledge graph/context
+ ↓
+Persistent knowledge
+ ↓
+Semantic search
+ ↓
+Conversations
+ ↓
+Cross-document reasoning
+ ↓
+Citations
+ ↓
+Future personal AI context
+
+Build the foundation for the second concept.
+
+==================================================
+# 32. FUTURE LLM PROVIDER EXAMPLE
+==================================================
+
+Today:
+
+AI_PROVIDER=gemini
+
+Tomorrow the user could change:
+
+AI_PROVIDER=openai
+
+or:
+
+AI_PROVIDER=anthropic
+
+or:
+
+AI_PROVIDER=ollama
+
+or:
+
+AI_PROVIDER=openrouter
+
+without changing application/business logic.
+
+Potential future configuration:
+
+{
+  provider: "gemini",
+  model: "gemini-model",
+  apiKey: "..."
+}
+
+The application should resolve the provider dynamically.
+
+Keep provider-specific code isolated.
+
+==================================================
+# 33. IMPORTANT: DON'T LOCK ME INTO GEMINI
+==================================================
+
+This is a hard requirement.
+
+Gemini is only the CURRENT provider.
+
+Do not name generic services:
+
+GeminiService
+
+everywhere.
+
+Prefer:
+
+LLMService
+LLMProvider
+EmbeddingProvider
+
+GeminiProvider implements LLMProvider.
+
+This is critical because I want users eventually to be able to bring their own API key and choose their preferred model.
+
+==================================================
+# 34. LOCAL DATA PRINCIPLE
+==================================================
+
+Another hard requirement:
+
+User data belongs to the user.
+
+The database should remain local during development and initial product development.
+
+Documents remain local.
+
+PostgreSQL remains local.
+
+Vectors remain local.
+
+Redis remains local.
+
+Only external AI calls should leave the machine currently.
+
+For example:
+
+Local document
+      ↓
+Local parsing
+      ↓
+Local chunking
+      ↓
+Gemini API
+      ↓
+Embedding / generation
+      ↓
+Local PostgreSQL
+
+Make this boundary explicit in the architecture.
+
+Later we may add local LLMs such as Ollama so even AI inference can become local.
+
+==================================================
+# 35. STARTING POINT
+==================================================
+
+Do NOT immediately generate thousands of lines of code.
+
+First:
+
+1. Analyze requirements.
+2. Identify architectural decisions.
+3. Propose final architecture.
+4. Propose database schema.
+5. Propose folder structure.
+6. Propose API structure.
+7. Propose Docker architecture.
+8. Propose RAG pipeline.
+9. Propose LLM provider abstraction.
+10. Identify potential risks and tradeoffs.
+
+Then ask yourself:
+
+"Can Phase 2, Phase 3 and Phase 4 be added without rewriting Phase 1?"
+
+If not, improve the architecture.
+
+After that:
+
+IMPLEMENT THE PROJECT.
+
+Build it incrementally.
+
+==================================================
+# 36. IMPLEMENTATION ORDER
+==================================================
+
+Follow this order:
+
+STEP 1
+Project initialization
+
+STEP 2
+Docker infrastructure
+
+STEP 3
+PostgreSQL + pgvector
+
+STEP 4
+Prisma schema
+
+STEP 5
+Authentication
+
+STEP 6
+Storage abstraction
+
+STEP 7
+Document upload
+
+STEP 8
+Document processing worker
+
+STEP 9
+Parser system
+
+STEP 10
+Chunking system
+
+STEP 11
+Embedding provider
+
+STEP 12
+Vector storage
+
+STEP 13
+Retrieval engine
+
+STEP 14
+LLM provider abstraction
+
+STEP 15
+Gemini provider
+
+STEP 16
+RAG query engine
+
+STEP 17
+Citation system
+
+STEP 18
+Chat interface
+
+STEP 19
+Document management UI
+
+STEP 20
+Search
+
+STEP 21
+Error handling
+
+STEP 22
+Testing
+
+STEP 23
+Performance improvements
+
+STEP 24
+Documentation
+
+==================================================
+# 37. BEFORE CODING
+==================================================
+
+Before writing implementation code, provide:
+
+A. Architecture diagram
+
+B. Database ER diagram
+
+C. Folder structure
+
+D. Main interfaces
+
+E. Request flow
+
+F. Document ingestion flow
+
+G. RAG query flow
+
+H. LLM provider flow
+
+I. Docker architecture
+
+J. Development roadmap
+
+Then begin implementation.
+
+==================================================
+# 38. IMPORTANT CODING RULE
+==================================================
+
+When you encounter a design decision, prefer the solution that makes future features easier without making the current system unnecessarily complex.
+
+This should be:
+
+MODULAR MONOLITH
++
+LOCAL-FIRST DATA
++
+PROVIDER-AGNOSTIC AI
++
+REUSABLE RAG
++
+REUSABLE MEMORY
++
+REUSABLE TOOLS
++
+FEATURE MODULES
+
+NOT:
+
+microservices
++
+multiple databases
++
+vendor lock-in
++
+over-engineered agent swarm
+
+==================================================
+# 39. FINAL SUCCESS CRITERIA FOR PHASE 1
+==================================================
+
+Phase 1 is complete when I can:
+
+1. Start PostgreSQL + pgvector locally.
+2. Start Redis locally.
+3. Start the Next.js application.
+4. Create/login as a user.
+5. Upload a PDF.
+6. See processing status.
+7. Wait for processing to complete.
+8. See extracted document information.
+9. Search the document semantically.
+10. Open a chat.
+11. Ask questions about my documents.
+12. Receive an answer from Gemini.
+13. See citations.
+14. Click a citation and inspect the source.
+15. Upload multiple documents.
+16. Ask questions across multiple documents.
+17. Filter by collection/tag.
+18. Delete documents.
+19. Reprocess documents.
+20. Restart the application without losing local data.
+
+Most importantly:
+
+The codebase must already be architected so that:
+
+SECOND BRAIN
+        ↓
+LIFE LIBRARY
+        ↓
+LIFE DASHBOARD
+        ↓
+REVIEW AGENT
+        ↓
+MARKETING KIT
+
+can all use the same AI CORE.
+
+==================================================
+# 40. YOUR ROLE
+==================================================
+
+Act as:
+
+- Senior software architect
+- AI systems engineer
+- RAG engineer
+- Next.js engineer
+- PostgreSQL engineer
+- UX engineer
+
+Do not simply follow the specification mechanically.
+
+If you see a better architectural approach, explain it and use it.
+
+However, preserve these non-negotiable requirements:
+
+1. Local PostgreSQL
+2. Local pgvector
+3. Local Redis
+4. Local document storage
+5. Gemini initially
+6. Provider-agnostic LLM architecture
+7. Provider-agnostic embedding architecture
+8. Reusable RAG engine
+9. Modular monolith
+10. Future expansion into all five products
+
+Start by giving me the architecture proposal.
+
+Do not skip the architecture phase.
+```
+
+---
+
+## 🔥 One thing I'd change from the original idea
+
+I would actually make the architecture slightly more powerful:
+
+```text
+                         PERSONAL AI PLATFORM
+                                  │
+                    ┌─────────────▼─────────────┐
+                    │          AI CORE          │
+                    │                           │
+                    │  LLM Router               │
+                    │  Embedding Router         │
+                    │  RAG Engine               │
+                    │  Memory Engine             │
+                    │  Agent Runtime             │
+                    │  Tool Registry             │
+                    │  Context Engine            │
+                    │  Prompt Management         │
+                    └─────────────┬─────────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+              ▼                   ▼                   ▼
+       KNOWLEDGE LAYER      PRODUCTIVITY LAYER    INTELLIGENCE
+              │                   │                   │
+       ┌──────┴──────┐       ┌────┴─────┐        ┌───┴────┐
+       │             │       │          │        │        │
+   Second Brain  Life Library  Dashboard  Tasks  Review  Marketing
+```
+
+And underneath:
+
+```text
+                    LOCAL DATA LAYER
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ▼                  ▼                  ▼
+   PostgreSQL           pgvector            Redis
+        │
+        ▼
+   Local Files
+```
+
+Then the AI boundary is:
+
+```text
+                    YOUR COMPUTER
+                         │
+       ┌─────────────────┴─────────────────┐
+       │                                   │
+       ▼                                   ▼
+   YOUR DATA                         AI PROVIDERS
+   ─────────                         ────────────
+   PostgreSQL                        Gemini
+   pgvector                          OpenAI
+   Redis                             Anthropic
+   Files                             OpenRouter
+                                     Ollama
+```
+
+### This gives you a very important property:
+
+**Your data architecture isn't dependent on your AI provider.**
+
+Today:
+
+```text
+Your App → Gemini
+```
+
+Tomorrow:
+
+```text
+Your App → OpenAI
+```
+
+Or:
+
+```text
+Your App → Claude
+```
+
+Or eventually:
+
+```text
+Your App → Ollama → Local LLM
+```
+
+without rebuilding your RAG/database/application layer.
+
+---
+
+## 🧠 And I'd make one more abstraction
+
+Instead of only:
+
+```text
+LLMProvider
+```
+
+build:
+
+```text
+AIProvider
+   │
+   ├── generate()
+   ├── stream()
+   ├── structuredOutput()
+   ├── embed()
+   └── capabilities()
+```
+
+Then a provider can advertise capabilities.
+
+For example:
+
+```text
+Gemini
+ ├── Text generation       ✓
+ ├── Streaming             ✓
+ ├── Structured output     ✓
+ ├── Embeddings            ✓
+ └── Vision                ✓
+
+Ollama
+ ├── Text generation       ✓
+ ├── Streaming             ✓
+ ├── Structured output     ✓
+ ├── Embeddings            ✓
+ └── Vision                depends on model
+```
+
+That becomes **very useful later** when you add Life Library with YouTube/video/images and eventually multimodal AI.
+
+---
+
+### One important practical choice
+
+For your **local DB**, I'd use:
+
+**PostgreSQL + pgvector + Redis + local filesystem initially.**
+
+I would **not** add MongoDB, Supabase, Pinecone, Qdrant, Weaviate, etc. right now.
+
+You already have PostgreSQL/pgvector knowledge, and keeping the entire data layer together makes this project much easier to reason about.
+
+The end result can become a genuinely substantial project:
+
+**Next.js + TypeScript + PostgreSQL + pgvector + Redis/BullMQ + RAG + Gemini + provider abstraction + agents + memory + OAuth integrations.**
+
+That is considerably more valuable as an engineering project than simply making five separate AI demos.

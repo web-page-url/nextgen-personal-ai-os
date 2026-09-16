@@ -1,0 +1,278 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+enum DocumentType {
+  PDF
+  DOCX
+  TXT
+  MD
+  CSV
+  JSON
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ProcessingJobType {
+  DOCUMENT_INGESTION
+  DOCUMENT_REPROCESS
+}
+
+enum ProcessingJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AIProviderPurpose {
+  LLM
+  EMBEDDING
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents         Document[]
+  collections       Collection[]
+  tags              Tag[]
+  conversations     Conversation[]
+  aiProviderConfigs AIProviderConfig[]
+
+  @@map("users")
+}
+
+model Document {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId     String?
+  collection       Collection?     @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  filename         String
+  originalName     String
+  fileType         DocumentType
+  mimeType         String
+  fileSizeBytes    Int
+  storageKey       String
+  status           DocumentStatus  @default(UPLOADED)
+  errorMessage     String?
+  currentVersionId String?         @unique
+  currentVersion   DocumentVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  metadata         Json?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  versions  DocumentVersion[] @relation("DocumentVersions")
+  chunks    DocumentChunk[]
+  tags      DocumentTag[]
+  citations Citation[]
+  jobs      ProcessingJob[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([collectionId])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id            String   @id @default(cuid())
+  documentId    String
+  document      Document @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  storageKey    String
+  fileSizeBytes Int
+  checksum      String?
+  extractedText String?
+  createdAt     DateTime @default(now())
+
+  currentFor Document?       @relation("CurrentVersion")
+  chunks     DocumentChunk[]
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@map("document_versions")
+}
+
+model DocumentChunk {
+  id                String          @id @default(cuid())
+  documentId        String
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersionId String
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  userId            String
+  chunkIndex        Int
+  content           String
+  tokenCount        Int?
+  embedding         Json
+  embeddingModel    String
+  embeddingDim      Int
+  pageNumber        Int?
+  sectionPath       String?
+  locationLabel     String
+  charStart         Int?
+  charEnd           Int?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+
+  citations Citation[]
+
+  @@unique([documentVersionId, chunkIndex])
+  @@index([documentId])
+  @@index([userId])
+  @@map("document_chunks")
+}
+
+model Conversation {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String?
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  messages Message[]
+
+  @@index([userId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String
+  tokenCount     Int?
+  model          String?
+  createdAt      DateTime     @default(now())
+
+  citations Citation[]
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Citation {
+  id              String        @id @default(cuid())
+  messageId       String
+  message         Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  documentId      String
+  document        Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkId         String
+  chunk           DocumentChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  similarityScore Float?
+  rank            Int?
+  locationLabel   String
+  createdAt       DateTime      @default(now())
+
+  @@index([messageId])
+  @@index([documentId])
+  @@map("citations")
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  documents     Document[]
+  conversations Conversation[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("collections")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  documents DocumentTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("tags")
+}
+
+model DocumentTag {
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([documentId, tagId])
+  @@index([tagId])
+  @@map("document_tags")
+}
+
+model ProcessingJob {
+  id           String              @id @default(cuid())
+  userId       String
+  documentId   String?
+  document     Document?           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type         ProcessingJobType
+  status       ProcessingJobStatus @default(PENDING)
+  attempts     Int                 @default(0)
+  maxAttempts  Int                 @default(3)
+  payload      Json?
+  errorMessage String?
+  lockedAt     DateTime?
+  lockedBy     String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status])
+  @@index([userId])
+  @@index([documentId])
+  @@map("processing_jobs")
+}
+
+model AIProviderConfig {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose         AIProviderPurpose
+  provider        String
+  model           String
+  apiKeyEncrypted String?
+  config          Json?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@map("ai_provider_configs")
+}
